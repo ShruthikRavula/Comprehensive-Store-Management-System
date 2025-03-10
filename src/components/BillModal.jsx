@@ -11,6 +11,8 @@ function BillModal({ onClose, onSave }) {
     email: '',
     mobileNumbers: ['']
   }]);
+  const [noAddCustomers, setNoAddCustomers] = useState(false);
+  const [addMobileNumber, setAddMobileNumber] = useState(false);
 
   useEffect(() => {
     fetchItems();
@@ -112,13 +114,29 @@ function BillModal({ onClose, onSave }) {
           <div className="mb-6">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold">Customers</h3>
-              <button
-                type="button"
-                onClick={handleAddCustomer}
-                className="text-blue-500 hover:text-blue-700"
-              >
-                <Plus size={20} />
-              </button>
+              {customers.length < 5 ?
+                (<button
+                  type="button"
+                  onClick={handleAddCustomer}
+                  className="text-blue-500 hover:text-blue-700"
+                >
+                  <Plus size={20} />
+                </button>) :
+                (<div className="relative flex flex-col items-start">
+                  <button
+                    type="button"
+                    onMouseEnter={() => setNoAddCustomers(true)}
+                    onMouseLeave={() => setNoAddCustomers(false)}
+                    className="text-gray-500 cursor-not-allowed flex items-center justify-center space-x-2"
+                  >
+                    <Plus size={20} />
+                  </button>
+                  {noAddCustomers && (
+                    <div className="absolute -top-1 bg-blue-800 text-white text-sm px-3 py-1 rounded-md shadow-lg whitespace-nowrap transform -translate-x-full">
+                      You can only add up to 5 customers
+                    </div>
+                  )}
+                </div>)}
             </div>
 
             {customers.map((customer, customerIndex) => (
@@ -176,15 +194,30 @@ function BillModal({ onClose, onSave }) {
                         className="flex-1 border rounded px-3 py-2"
                         required
                       />
-                      {numberIndex === 0 ? (
-                        <button
-                          type="button"
-                          onClick={() => handleAddMobileNumber(customerIndex)}
-                          className="text-blue-500 hover:text-blue-700"
-                        >
-                          <Plus size={20} />
-                        </button>
-                      ) : (
+                      {numberIndex === 0 ? 
+                        
+                        customer.mobileNumbers.length < 3 ? (
+                          <button type="button" onClick={() => handleAddMobileNumber(customerIndex)} className="text-blue-500 hover:text-blue-700" >
+                            <Plus size={20} />
+                          </button>) :
+                          (
+                            <div className="relative flex flex-col items-start">
+                              <button
+                                type="button"
+                                onMouseEnter={() => setAddMobileNumber(true)}
+                                onMouseLeave={() => setAddMobileNumber(false)}
+                                className="text-gray-500 cursor-not-allowed flex items-center justify-center space-x-2"
+                              >
+                                <Plus size={20} />
+                              </button>
+                              {addMobileNumber && (
+                                <div className="absolute -top-1 bg-blue-800 text-white text-sm px-3 py-1 rounded-md shadow-lg whitespace-nowrap transform -translate-x-full">
+                                  You can only add up to 3 mobile numbers
+                                </div>
+                              )}
+                            </div>
+                          )
+                         : (
                         <button
                           type="button"
                           onClick={() => handleRemoveMobileNumber(customerIndex, numberIndex)}
@@ -192,99 +225,99 @@ function BillModal({ onClose, onSave }) {
                         >
                           <Minus size={20} />
                         </button>
-                      )}
-                    </div>
-                  ))}
+                            )}
                 </div>
+                  ))}
+              </div>
               </div>
             ))}
-          </div>
+      </div>
 
-          {/* Items Section */}
-          <div className="mb-6">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold">Items</h3>
+      {/* Items Section */}
+      <div className="mb-6">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-semibold">Items</h3>
+          <button
+            type="button"
+            onClick={handleAddItem}
+            className="text-blue-500 hover:text-blue-700"
+          >
+            <Plus size={20} />
+          </button>
+        </div>
+
+        {selectedItems.map((selected, index) => (
+          <div key={index} className="flex gap-4 mb-4">
+            <select
+              value={selected.itemId}
+              onChange={(e) => {
+                const newItems = [...selectedItems];
+                newItems[index].itemId = e.target.value;
+                setSelectedItems(newItems);
+              }}
+              className="flex-1 border rounded px-3 py-2"
+              required
+            >
+              <option value="">Select an item</option>
+              {items.map(item => (
+                <option key={item._id} value={item._id}>
+                  {item.name} - ${item.price}
+                </option>
+              ))}
+            </select>
+
+            <input
+              type="number"
+              min="1"
+              value={selected.quantity}
+              onChange={(e) => {
+                const newItems = [...selectedItems];
+                newItems[index].quantity = parseInt(e.target.value) || 1;
+                setSelectedItems(newItems);
+              }}
+              className="w-24 border rounded px-3 py-2"
+            />
+
+            {index > 0 && (
               <button
                 type="button"
-                onClick={handleAddItem}
-                className="text-blue-500 hover:text-blue-700"
+                onClick={() => handleRemoveItem(index)}
+                className="text-red-500 hover:text-red-700"
               >
-                <Plus size={20} />
+                <X size={20} />
               </button>
-            </div>
-
-            {selectedItems.map((selected, index) => (
-              <div key={index} className="flex gap-4 mb-4">
-                <select
-                  value={selected.itemId}
-                  onChange={(e) => {
-                    const newItems = [...selectedItems];
-                    newItems[index].itemId = e.target.value;
-                    setSelectedItems(newItems);
-                  }}
-                  className="flex-1 border rounded px-3 py-2"
-                  required
-                >
-                  <option value="">Select an item</option>
-                  {items.map(item => (
-                    <option key={item._id} value={item._id}>
-                      {item.name} - ${item.price}
-                    </option>
-                  ))}
-                </select>
-
-                <input
-                  type="number"
-                  min="1"
-                  value={selected.quantity}
-                  onChange={(e) => {
-                    const newItems = [...selectedItems];
-                    newItems[index].quantity = parseInt(e.target.value) || 1;
-                    setSelectedItems(newItems);
-                  }}
-                  className="w-24 border rounded px-3 py-2"
-                />
-
-                {index > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveItem(index)}
-                    className="text-red-500 hover:text-red-700"
-                  >
-                    <X size={20} />
-                  </button>
-                )}
-              </div>
-            ))}
+            )}
           </div>
-
-          <div className="text-right mb-6">
-            <p className="text-xl font-semibold flex justify-end items-center gap-1">
-              <span>Total:</span>
-              <IndianRupee size={20 } />
-              <span>{calculateTotal().toFixed(2)}</span>
-            </p>
-          </div>
-
-
-          <div className="flex justify-end gap-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 border rounded-lg"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="px-4 py-2 bg-blue-500 text-white rounded-lg"
-            >
-              Create Bill
-            </button>
-          </div>
-        </form>
+        ))}
       </div>
-    </div>
+
+      <div className="text-right mb-6">
+        <p className="text-xl font-semibold flex justify-end items-center gap-1">
+          <span>Total:</span>
+          <IndianRupee size={20} />
+          <span>{calculateTotal().toFixed(2)}</span>
+        </p>
+      </div>
+
+
+      <div className="flex justify-end gap-4">
+        <button
+          type="button"
+          onClick={onClose}
+          className="px-4 py-2 border rounded-lg"
+        >
+          Cancel
+        </button>
+        <button
+          type="submit"
+          className="px-4 py-2 bg-blue-500 text-white rounded-lg"
+        >
+          Create Bill
+        </button>
+      </div>
+    </form>
+      </div >
+    </div >
   );
 }
 
