@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { X, Plus, Minus, IndianRupee } from 'lucide-react';
 import { toast } from 'react-toastify';
+import { set } from 'mongoose';
 
 function BillModal({ onClose, onSave }) {
   const [items, setItems] = useState([]);
@@ -13,6 +14,7 @@ function BillModal({ onClose, onSave }) {
   }]);
   const [noAddCustomers, setNoAddCustomers] = useState(false);
   const [addMobileNumber, setAddMobileNumber] = useState(false);
+  const [currentCustomerIndex, setCurrentCustomerIndex] = useState(0);
 
   useEffect(() => {
     fetchItems();
@@ -204,13 +206,19 @@ function BillModal({ onClose, onSave }) {
                             <div className="relative flex flex-col items-start">
                               <button
                                 type="button"
-                                onMouseEnter={() => setAddMobileNumber(true)}
-                                onMouseLeave={() => setAddMobileNumber(false)}
+                                onMouseEnter={() => {
+                                  setAddMobileNumber(true)
+                                  setCurrentCustomerIndex(customerIndex)
+                                }}
+                                onMouseLeave={() => {
+                                  setAddMobileNumber(false)
+                                  setCurrentCustomerIndex(0)
+                                 }}
                                 className="text-gray-500 cursor-not-allowed flex items-center justify-center space-x-2"
                               >
                                 <Plus size={20} />
                               </button>
-                              {addMobileNumber && (
+                              {addMobileNumber && currentCustomerIndex === customerIndex &&(
                                 <div className="absolute -top-1 bg-blue-800 text-white text-sm px-3 py-1 rounded-md shadow-lg whitespace-nowrap transform -translate-x-full">
                                   You can only add up to 3 mobile numbers
                                 </div>
