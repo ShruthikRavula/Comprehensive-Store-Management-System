@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { X, Plus, Minus, IndianRupee } from 'lucide-react';
 import { toast } from 'react-toastify';
@@ -6,6 +6,7 @@ import { set } from 'mongoose';
 
 function BillModal({ onClose, onSave }) {
   const [items, setItems] = useState([]);
+  const [tags, setTags] = useState([]);
   const [selectedItems, setSelectedItems] = useState([{ itemId: '', quantity: 1 }]);
   const [customers, setCustomers] = useState([{
     name: '',
@@ -15,21 +16,50 @@ function BillModal({ onClose, onSave }) {
   const [noAddCustomers, setNoAddCustomers] = useState(false);
   const [addMobileNumber, setAddMobileNumber] = useState(false);
   const [currentCustomerIndex, setCurrentCustomerIndex] = useState(0);
+  const [selectableItems, setSelectableItems] = useState([])
+  const effectRan = useRef(false);
 
   useEffect(() => {
+    if (effectRan.current) {
+      return;
+    }
+    effectRan.current = true;
     fetchItems();
+    fetchTags();
   }, []);
+
+  useEffect(() => {
+    console.log("SlectableItems changing", selectableItems, selectableItems.length, selectedItems.length)
+  }, [selectableItems])
 
   console.log("BillModal");
 
   const fetchItems = async () => {
     try {
       const response = await axios.get('http://localhost:5000/api/items');
+      let arr = selectableItems
+      arr.push(response.data)
+      setSelectableItems(prevItems => [...prevItems, response.data]);
       setItems(response.data);
+      console.log("selectableItems", selectableItems, selectableItems.length, selectedItems.length)
     } catch (error) {
       toast.error('Error fetching items');
     }
   };
+
+  const fetchTags = async () => {
+    try {
+      const response = await axios.get("http://localhost:5000/api/tags", {
+        params: {
+          pinned: true
+        }
+      })
+      setTags(response.data)
+    }
+    catch (error) {
+      toast.error("Error fetching tags")
+    }
+  }
 
   const handleAddCustomer = () => {
     setCustomers([...customers, { name: '', email: '', mobileNumbers: [''] }]);
@@ -52,7 +82,10 @@ function BillModal({ onClose, onSave }) {
   };
 
   const handleAddItem = () => {
+    console.log(selectedItems, selectableItems, selectableItems.length, selectedItems.length)
     setSelectedItems([...selectedItems, { itemId: '', quantity: 1 }]);
+    setSelectableItems([...selectableItems, [...items]])
+    // console.log("selectableItems", selectableItems.length, selectedItems.length, selectedItems)
   };
 
   const handleRemoveItem = (index) => {
@@ -149,7 +182,7 @@ function BillModal({ onClose, onSave }) {
                     <button
                       type="button"
                       onClick={() => handleRemoveCustomer(customerIndex)}
-                      className="text-red-500 hover:text-red-700"
+                      className="text-red-200 hover:text-red-700"
                     >
                       <X size={20} />
                     </button>
@@ -229,7 +262,7 @@ function BillModal({ onClose, onSave }) {
                         <button
                           type="button"
                           onClick={() => handleRemoveMobileNumber(customerIndex, numberIndex)}
-                          className="text-red-500 hover:text-red-700"
+                          className="text-red-200 hover:text-red-700"
                         >
                           <Minus size={20} />
                         </button>
@@ -252,6 +285,9 @@ function BillModal({ onClose, onSave }) {
           >
             <Plus size={20} />
           </button>
+          <div className="flex items-center gap-4">
+                <h2>Tags</h2>
+          </div>   
         </div>
 
         {selectedItems.map((selected, index) => (
@@ -259,6 +295,10 @@ function BillModal({ onClose, onSave }) {
             <select
               value={selected.itemId}
               onChange={(e) => {
+                if (selectedItems.some((item, ind) => item.itemId === e.target.value && ind !== index)) {
+                  toast.info('Item already selected');
+                  return;
+                }
                 const newItems = [...selectedItems];
                 newItems[index].itemId = e.target.value;
                 setSelectedItems(newItems);
@@ -285,6 +325,18 @@ function BillModal({ onClose, onSave }) {
               }}
               className="w-24 border rounded px-3 py-2"
             />
+
+            <select className="border rounded px-3 py-2" onChange={(e) => {
+              console.log("selected tag", e.target.value, items)
+              setItems(items.filter(item => item.tags.some(tag => tag._id === e.target.value)))
+            }}>
+              <option value="0">Select Tag</option>
+              {tags.map(tag => (
+                <option key={tag._id} value={tag._id}>
+                  {tag.name}
+                </option>
+              ))}
+            </select>
 
             {index > 0 && (
               <button
