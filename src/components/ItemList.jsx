@@ -3,6 +3,7 @@ import axios from 'axios';
 import { Plus, Search, Filter, Trash2, PinOff, Pin } from 'lucide-react';
 import ItemModal from './ItemModal';
 import { toast } from 'react-toastify';
+import { set } from 'mongoose';
 
 function ItemList() {
   const [items, setItems] = useState([]);
@@ -11,6 +12,8 @@ function ItemList() {
   const [selectedTags, setSelectedTags] = useState([]);
   const [sortBy, setSortBy] = useState('date');
   const [sortOrder, setSortOrder] = useState('desc');
+  const [filterTags, setFilterTags] = useState(() => new Set());
+  const [filteredItems, setFilteredItems] = useState([]);
 
   useEffect(() => {
     fetchItems();
@@ -24,7 +27,6 @@ function ItemList() {
           pinned: true,
         }
       });
-      console.log("fetched tags", response.data);
       setSelectedTags(response.data);
     }
     catch (error) {
@@ -48,6 +50,24 @@ function ItemList() {
     try {
       const response = await axios.get('http://localhost:5000/api/items');
       setItems(response.data);
+      setFilteredItems(response.data
+        .filter(item =>
+          item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (searchTerm.length === 0 ||
+            item.tags.some(tag => tag.name.toLowerCase().includes(searchTerm.toLowerCase())))
+        )
+        .sort((a, b) => {
+          if (sortBy === 'date') {
+            return sortOrder === 'asc'
+              ? new Date(a.createdAt) - new Date(b.createdAt)
+              : new Date(b.createdAt) - new Date(a.createdAt);
+          } else {
+            return sortOrder === 'asc'
+              ? a.name.localeCompare(b.name)
+              : b.name.localeCompare(a.name);
+          }
+        })
+      );
     } catch (error) {
       console.error('Error fetching items:', error);
     }
@@ -65,23 +85,25 @@ function ItemList() {
     }
   }
 
-  const filteredItems = items
-    .filter(item =>
-      item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (searchTerm.length === 0 ||
-        item.tags.some(tag => tag.name.toLowerCase().includes(searchTerm.toLowerCase())))
-    )
-    .sort((a, b) => {
-      if (sortBy === 'date') {
-        return sortOrder === 'asc'
-          ? new Date(a.createdAt) - new Date(b.createdAt)
-          : new Date(b.createdAt) - new Date(a.createdAt);
-      } else {
-        return sortOrder === 'asc'
-          ? a.name.localeCompare(b.name)
-          : b.name.localeCompare(a.name);
-      }
-    });
+  const selectTag = async (id) => {
+    if (filterTags.has(id)) {
+      filterTags.delete(id);
+    }
+    else {
+      filterTags.add(id);
+    }
+    if (filterTags.size === 0) { 
+      console.log("No tags selected", items);
+      setFilteredItems(items)
+      return
+    }
+    setFilterTags(new Set(filterTags));
+    setFilteredItems(items
+      .filter(item =>
+        item.tags.some(tag => filterTags.has(tag._id))
+    ) )
+  }
+  
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
@@ -103,7 +125,16 @@ function ItemList() {
             placeholder="Search items..."
             className="w-full pl-10 pr-4 py-2 border rounded-lg"
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => {
+              setSearchTerm(e.target.value)
+              setFilteredItems(filteredItems
+                .filter(item =>
+                  item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                  searchTerm.length === 0
+                )
+              )
+            }
+            }
           />
         </div>
 
@@ -131,7 +162,7 @@ function ItemList() {
         {selectedTags.map(tag => (
           <div className="flex gap-2" key={tag._id + "pinned"}>
             <button
-              className={`text-black px-4 py-2 rounded-lg flex items-center gap-2`}
+              className={`text-black bg-${filterTags.has(tag._id) ? 'blue-500' : 'white'} px-4 py-2 rounded-lg flex items-center gap-2`} onClick={() => selectTag(tag._id)}
             >
               {tag.name}
               <PinOff size={20} onClick={() => unPinTag(tag._id)} />
@@ -142,6 +173,7 @@ function ItemList() {
         ))}
       </div>
 
+      {/* These are filtered items */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredItems.map(item => (
           <div key={item._id + "item"} className="bg-white rounded-lg shadow-md overflow-hidden">
