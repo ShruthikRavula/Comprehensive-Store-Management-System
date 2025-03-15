@@ -103,6 +103,24 @@ function ItemList() {
         item.tags.some(tag => filterTags.has(tag._id))
     ) )
   }
+
+  const allItems = filteredItems
+    .filter(item =>
+      item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (searchTerm.length === 0 ||
+        item.tags.some(tag => tag.name.toLowerCase().includes(searchTerm.toLowerCase())))
+    )
+    .sort((a, b) => {
+      if (sortBy === 'date') {
+        return sortOrder === 'asc'
+          ? new Date(a.createdAt) - new Date(b.createdAt)
+          : new Date(b.createdAt) - new Date(a.createdAt);
+      } else {
+        return sortOrder === 'asc'
+          ? a.name.localeCompare(b.name)
+          : b.name.localeCompare(a.name);
+      }
+    });
   
   return (
     <div>
@@ -125,16 +143,7 @@ function ItemList() {
             placeholder="Search items..."
             className="w-full pl-10 pr-4 py-2 border rounded-lg"
             value={searchTerm}
-            onChange={(e) => {
-              setSearchTerm(e.target.value)
-              setFilteredItems(filteredItems
-                .filter(item =>
-                  item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                  searchTerm.length === 0
-                )
-              )
-            }
-            }
+            onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
 
@@ -175,7 +184,7 @@ function ItemList() {
 
       {/* These are filtered items */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredItems.map(item => (
+        {allItems.map(item => (
           <div key={item._id + "item"} className="bg-white rounded-lg shadow-md overflow-hidden">
             <img src={item.photo} alt={item.name} className="w-full h-48 object-cover" />
             <div className="p-4">

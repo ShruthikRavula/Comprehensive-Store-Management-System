@@ -81,18 +81,18 @@ router.get('/:id/pdf', async (req, res) => {
     doc.moveDown();
     bill.items.forEach(item => {
       doc.fontSize(12).text(
-        `${item.item.name} - Quantity: ${item.quantity} - Price: $${item.item.price * item.quantity}`
+        `${item.item.name} - Quantity: ${item.quantity} - Price: ₹${item.item.price * item.quantity}`
       );
     });
     
     doc.moveDown();
     
     // Total amount
-    doc.fontSize(14).text(`Total Amount: $${bill.totalAmount}`);
-    doc.text(`Paid Amount: $${bill.paidAmount}`);
+    doc.fontSize(14).text(`Total Amount: ₹${bill.totalAmount}`);
+    doc.text(`Paid Amount: ₹${bill.paidAmount}`);
     doc.text(`Status: ${bill.status}`);
     if (bill.status === 'partially-paid') {
-      doc.text(`Pending Amount: $${bill.totalAmount - bill.paidAmount}`);
+      doc.text(`Pending Amount: ₹${bill.totalAmount - bill.paidAmount}`);
     }
     
     // Finalize PDF

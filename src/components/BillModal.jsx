@@ -4,6 +4,18 @@ import { X, Plus, Minus, IndianRupee } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { set } from 'mongoose';
 
+
+// function ItemCard = ({ item, index, deleteItem, totalItems, totalTags}) => {
+//   return (
+//     <div className='flex gap-4 mb-4'>
+//       <select
+//         value={item.itemId}
+//         onChange={(e) => {
+//           if (total)
+//         }}
+//     </div>
+//   )
+// }
 function BillModal({ onClose, onSave }) {
   const [items, setItems] = useState([]);
   const [tags, setTags] = useState([]);
@@ -309,7 +321,7 @@ function BillModal({ onClose, onSave }) {
               <option value="">Select an item</option>
               {items.map(item => (
                 <option key={item._id} value={item._id}>
-                  {item.name} - ${item.price}
+                  {item.name} - ₹{item.price}
                 </option>
               ))}
             </select>
