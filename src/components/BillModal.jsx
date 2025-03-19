@@ -1,34 +1,96 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useReducer } from 'react';
 import axios from 'axios';
 import { X, Plus, Minus, IndianRupee } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { set } from 'mongoose';
 
 
-// function ItemCard = ({ item, index, deleteItem, totalItems, totalTags}) => {
-//   return (
-//     <div className='flex gap-4 mb-4'>
-//       <select
-//         value={item.itemId}
-//         onChange={(e) => {
-//           if (total)
-//         }}
-//     </div>
-//   )
-// }
+const ItemCard = (item, index, deleteItem, totalItems, totalTags, selectedItemsIndices, setSelectedItemsIndices, selectedItems, setSelectedItems) => {
+  const [items, setItems] = useState(totalItems);
+  const tagsReducer = (state, action) => {
+    const newTags = new Set(state);
+    if (action.type === 'add') {
+      newTags.add(action.tag);
+    }
+    if (action.type === 'remove') {
+      newTags.delete(action.tag);
+    }
+    return newTags ? newTags : new Set(totalTags);
+  }
+
+  const [tags, dispatch] = useReducer(tagsReducer, new Set(totalTags));
+  
+
+
+  return (
+    <div className="flex gap-4 mb-4">
+      <select
+        value={item.itemId}
+        onChange={(e) => {
+          if (selectedItemsIndices.some((ind) => ind === index)) {
+            toast.info('Item already selected');
+            return;
+          }
+          const newItems = [...selectedItems];
+          newItems[index].itemId = e.target.value;
+          setSelectedItems(newItems);
+        }}
+        className="flex-1 border rounded px-3 py-2"
+        required
+      >
+        <option value="">Select an item</option>
+        {totalItems.map(item => (
+          <option key={item._id} value={item._id}>
+            {item.name} - ₹{item.price}
+          </option>
+        ))}
+      </select>
+
+      <input
+        type="number"
+        min="1"
+        value={item.quantity}
+        onChange={(e) => {
+          const newItems = [...selectedItems];
+          newItems[index].quantity = parseInt(e.target.value) || 1;
+          setSelectedItems(newItems);
+        }}
+        className="w-24 border rounded px-3 py-2"
+      />
+
+      <select className="border rounded px-3 py-2" onChange={(e) => {
+
+        setItems(items.filter(item => item.tags.some(tag => tag._id === e.target.value)))
+      }}>
+        <option value="0">Select Tag</option>
+        {totalTags.map(tag => (
+          <option key={tag._id} value={tag._id}>
+            {tag.name}
+          </option>
+        ))}
+      </select>
+
+      {index > 0 && (
+        <button
+          type="button"
+          onClick={() => handleRemoveItem(index)}
+          className="text-red-500 hover:text-red-700"
+        >
+          <X size={20} />
+        </button>
+      )}
+    </div>
+  )
+}
 function BillModal({ onClose, onSave }) {
   const [items, setItems] = useState([]);
   const [tags, setTags] = useState([]);
   const [selectedItems, setSelectedItems] = useState([{ itemId: '', quantity: 1 }]);
-  const [customers, setCustomers] = useState([{
-    name: '',
-    email: '',
-    mobileNumbers: ['']
-  }]);
+  const [customers, setCustomers] = useState([{ name: '', email: '', mobileNumbers: [''] }]);
   const [noAddCustomers, setNoAddCustomers] = useState(false);
   const [addMobileNumber, setAddMobileNumber] = useState(false);
   const [currentCustomerIndex, setCurrentCustomerIndex] = useState(0);
-  const [selectableItems, setSelectableItems] = useState([])
+  const [selectedItemsIndices, setSelectedItemsIndices] = useState([])
   const effectRan = useRef(false);
 
   useEffect(() => {
@@ -40,20 +102,13 @@ function BillModal({ onClose, onSave }) {
     fetchTags();
   }, []);
 
-  useEffect(() => {
-    console.log("SlectableItems changing", selectableItems, selectableItems.length, selectedItems.length)
-  }, [selectableItems])
-
   console.log("BillModal");
 
   const fetchItems = async () => {
     try {
       const response = await axios.get('http://localhost:5000/api/items');
-      let arr = selectableItems
-      arr.push(response.data)
-      setSelectableItems(prevItems => [...prevItems, response.data]);
       setItems(response.data);
-      console.log("selectableItems", selectableItems, selectableItems.length, selectedItems.length)
+      console.log(response.data)
     } catch (error) {
       toast.error('Error fetching items');
     }
@@ -94,10 +149,8 @@ function BillModal({ onClose, onSave }) {
   };
 
   const handleAddItem = () => {
-    console.log(selectedItems, selectableItems, selectableItems.length, selectedItems.length)
     setSelectedItems([...selectedItems, { itemId: '', quantity: 1 }]);
-    setSelectableItems([...selectableItems, [...items]])
-    // console.log("selectableItems", selectableItems.length, selectedItems.length, selectedItems)
+    setSelectedItemsIndices([...selectedItemsIndices, -1])
   };
 
   const handleRemoveItem = (index) => {
@@ -241,8 +294,8 @@ function BillModal({ onClose, onSave }) {
                         className="flex-1 border rounded px-3 py-2"
                         required
                       />
-                      {numberIndex === 0 ? 
-                        
+                      {numberIndex === 0 ?
+
                         customer.mobileNumbers.length < 3 ? (
                           <button type="button" onClick={() => handleAddMobileNumber(customerIndex)} className="text-blue-500 hover:text-blue-700" >
                             <Plus size={20} />
@@ -258,136 +311,136 @@ function BillModal({ onClose, onSave }) {
                                 onMouseLeave={() => {
                                   setAddMobileNumber(false)
                                   setCurrentCustomerIndex(0)
-                                 }}
+                                }}
                                 className="text-gray-500 cursor-not-allowed flex items-center justify-center space-x-2"
                               >
                                 <Plus size={20} />
                               </button>
-                              {addMobileNumber && currentCustomerIndex === customerIndex &&(
+                              {addMobileNumber && currentCustomerIndex === customerIndex && (
                                 <div className="absolute -top-1 bg-blue-800 text-white text-sm px-3 py-1 rounded-md shadow-lg whitespace-nowrap transform -translate-x-full">
                                   You can only add up to 3 mobile numbers
                                 </div>
                               )}
                             </div>
                           )
-                         : (
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveMobileNumber(customerIndex, numberIndex)}
-                          className="text-red-200 hover:text-red-700"
-                        >
-                          <Minus size={20} />
-                        </button>
-                            )}
-                </div>
+                        : (
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveMobileNumber(customerIndex, numberIndex)}
+                            className="text-red-200 hover:text-red-700"
+                          >
+                            <Minus size={20} />
+                          </button>
+                        )}
+                    </div>
                   ))}
-              </div>
+                </div>
               </div>
             ))}
-      </div>
+          </div>
 
-      {/* Items Section */}
-      <div className="mb-6">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-semibold">Items</h3>
-          <button
-            type="button"
-            onClick={handleAddItem}
-            className="text-blue-500 hover:text-blue-700"
-          >
-            <Plus size={20} />
-          </button>
-          <div className="flex items-center gap-4">
-                <h2>Tags</h2>
-          </div>   
-        </div>
-
-        {selectedItems.map((selected, index) => (
-          <div key={index} className="flex gap-4 mb-4">
-            <select
-              value={selected.itemId}
-              onChange={(e) => {
-                if (selectedItems.some((item, ind) => item.itemId === e.target.value && ind !== index)) {
-                  toast.info('Item already selected');
-                  return;
-                }
-                const newItems = [...selectedItems];
-                newItems[index].itemId = e.target.value;
-                setSelectedItems(newItems);
-              }}
-              className="flex-1 border rounded px-3 py-2"
-              required
-            >
-              <option value="">Select an item</option>
-              {items.map(item => (
-                <option key={item._id} value={item._id}>
-                  {item.name} - ₹{item.price}
-                </option>
-              ))}
-            </select>
-
-            <input
-              type="number"
-              min="1"
-              value={selected.quantity}
-              onChange={(e) => {
-                const newItems = [...selectedItems];
-                newItems[index].quantity = parseInt(e.target.value) || 1;
-                setSelectedItems(newItems);
-              }}
-              className="w-24 border rounded px-3 py-2"
-            />
-
-            <select className="border rounded px-3 py-2" onChange={(e) => {
-              console.log("selected tag", e.target.value, items)
-              setItems(items.filter(item => item.tags.some(tag => tag._id === e.target.value)))
-            }}>
-              <option value="0">Select Tag</option>
-              {tags.map(tag => (
-                <option key={tag._id} value={tag._id}>
-                  {tag.name}
-                </option>
-              ))}
-            </select>
-
-            {index > 0 && (
+          {/* Items Section */}
+          <div className="mb-6">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold">Items</h3>
               <button
                 type="button"
-                onClick={() => handleRemoveItem(index)}
-                className="text-red-500 hover:text-red-700"
+                onClick={handleAddItem}
+                className="text-blue-500 hover:text-blue-700"
               >
-                <X size={20} />
+                <Plus size={20} />
               </button>
-            )}
+              <div className="flex items-center gap-4">
+                <h2>Tags</h2>
+              </div>
+            </div>
+
+            {selectedItems.map((selected, index) => (
+              <div key={index} className="flex gap-4 mb-4">
+                <select
+                  value={selected.itemId}
+                  onChange={(e) => {
+                    if (selectedItems.some((item, ind) => item.itemId === e.target.value && ind !== index)) {
+                      toast.info('Item already selected');
+                      return;
+                    }
+                    const newItems = [...selectedItems];
+                    newItems[index].itemId = e.target.value;
+                    setSelectedItems(newItems);
+                  }}
+                  className="flex-1 border rounded px-3 py-2"
+                  required
+                >
+                  <option value="">Select an item</option>
+                  {items.map(item => (
+                    <option key={item._id} value={item._id}>
+                      {item.name} - ₹{item.price}
+                    </option>
+                  ))}
+                </select>
+
+                <input
+                  type="number"
+                  min="1"
+                  value={selected.quantity}
+                  onChange={(e) => {
+                    const newItems = [...selectedItems];
+                    newItems[index].quantity = parseInt(e.target.value) || 1;
+                    setSelectedItems(newItems);
+                  }}
+                  className="w-24 border rounded px-3 py-2"
+                />
+
+                <select className="border rounded px-3 py-2" onChange={(e) => {
+                  // console.log("selected tag", e.target.value, items)
+                  setItems(items.filter(item => item.tags.some(tag => tag._id === e.target.value)))
+                }}>
+                  <option value="0">Select Tag</option>
+                  {tags.map(tag => (
+                    <option key={tag._id} value={tag._id}>
+                      {tag.name}
+                    </option>
+                  ))}
+                </select>
+
+                {index > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveItem(index)}
+                    className="text-red-500 hover:text-red-700"
+                  >
+                    <X size={20} />
+                  </button>
+                )}
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
 
-      <div className="text-right mb-6">
-        <p className="text-xl font-semibold flex justify-end items-center gap-1">
-          <span>Total:</span>
-          <IndianRupee size={20} />
-          <span>{calculateTotal().toFixed(2)}</span>
-        </p>
-      </div>
+          <div className="text-right mb-6">
+            <p className="text-xl font-semibold flex justify-end items-center gap-1">
+              <span>Total:</span>
+              <IndianRupee size={20} />
+              <span>{calculateTotal().toFixed(2)}</span>
+            </p>
+          </div>
 
 
-      <div className="flex justify-end gap-4">
-        <button
-          type="button"
-          onClick={onClose}
-          className="px-4 py-2 border rounded-lg"
-        >
-          Cancel
-        </button>
-        <button
-          type="submit"
-          className="px-4 py-2 bg-blue-500 text-white rounded-lg"
-        >
-          Create Bill
-        </button>
-      </div>
-    </form>
+          <div className="flex justify-end gap-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 border rounded-lg"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="px-4 py-2 bg-blue-500 text-white rounded-lg"
+            >
+              Create Bill
+            </button>
+          </div>
+        </form>
       </div >
     </div >
   );

@@ -189,7 +189,7 @@ function ItemList() {
             <img src={item.photo} alt={item.name} className="w-full h-48 object-cover" />
             <div className="p-4">
               <h3 className="text-xl font-semibold mb-2">{item.name}</h3>
-              <p className="text-gray-600 mb-2">${item.price.toFixed(2)}</p>
+              <p className="text-gray-600 mb-2">₹{item.price.toFixed(2)}</p>
               <div className="flex flex-wrap gap-2">
                 {item.tags.map(tag => (
                   <span key={tag._id + "inside item"} className="bg-gray-100 px-2 py-1 rounded-full text-sm">

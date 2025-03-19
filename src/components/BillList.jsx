@@ -112,7 +112,7 @@ function BillList() {
               {bill.items.map((item, index) => (
                 <div key={index} className="flex justify-between text-gray-600">
                   <span>{item.item.name} × {item.quantity}</span>
-                  <span>${(item.item.price * item.quantity).toFixed(2)}</span>
+                  <span>₹{(item.item.price * item.quantity).toFixed(2)}</span>
                 </div>
               ))}
             </div>
@@ -120,16 +120,16 @@ function BillList() {
             <div className="border-t pt-4">
               <div className="flex justify-between items-center mb-2">
                 <span className="font-semibold">Total Amount:</span>
-                <span>${bill.totalAmount.toFixed(2)}</span>
+                <span>₹{bill.totalAmount.toFixed(2)}</span>
               </div>
               <div className="flex justify-between items-center mb-2">
                 <span className="font-semibold">Paid Amount:</span>
-                <span>${bill.paidAmount.toFixed(2)}</span>
+                <span>₹{bill.paidAmount.toFixed(2)}</span>
               </div>
               {bill.status === 'partially-paid' && (
                 <div className="flex justify-between items-center mb-2">
                   <span className="font-semibold">Pending Amount:</span>
-                  <span>${(bill.totalAmount - bill.paidAmount).toFixed(2)}</span>
+                  <span>₹{(bill.totalAmount - bill.paidAmount).toFixed(2)}</span>
                 </div>
               )}
               <div className="flex justify-between items-center">
